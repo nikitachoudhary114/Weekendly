@@ -20,6 +20,12 @@ export interface ScheduleItem {
   activity: IActivity;
   startTime: string;
   day: "saturday" | "sunday";
+  /** Hours blocked on the schedule (editable; may differ from library default). */
+  duration: number;
+}
+
+export function getScheduleDuration(item: ScheduleItem): number {
+  return item.duration ?? item.activity.duration;
 }
 
 export interface WeekendPlan {

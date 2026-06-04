@@ -1,94 +1,81 @@
-import React, { useState, useEffect } from "react";
-import { Trash2 } from "lucide-react";
-import type { ScheduleItem } from "@/types";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState } from "react";
+import { Plus } from "lucide-react";
+import type { IActivity, ScheduleItem } from "@/types";
+import { getScheduleDuration } from "@/types";
 import { useThemeContext } from "@/context/ThemeProvider";
+import ScheduleEventBlock from "./ScheduleEventBlock";
+import DroppableSlot from "./DroppableSlot";
+import {
+  TIME_SLOTS,
+  parseHour,
+  formatTime,
+  getOccupiedHours,
+  SCHEDULE_END,
+} from "@/lib/time";
 
 interface Props {
   saturday: ScheduleItem[];
   sunday: ScheduleItem[];
-  onDrop: (
-    e: React.DragEvent<HTMLDivElement>,
+  selectedActivity: IActivity | null;
+  isTouch: boolean;
+  onSlotTap: (day: "saturday" | "sunday", time: string) => void;
+  onRemoveActivity: (id: string) => void;
+  onMoveSchedule: (
+    id: string,
     day: "saturday" | "sunday",
     time: string
   ) => void;
-  onRemoveActivity: (id: string) => void;
+  onResizeSchedule: (id: string, duration: number) => void;
 }
 
-const TIME_SLOTS = Array.from({ length: 16 }, (_, i) => 8 + i); // 8 AM–11 PM
+const MOOD_STYLES: Record<string, { light: string; dark: string }> = {
+  adventurous: {
+    light: "bg-orange-100 border-orange-300 text-orange-900",
+    dark: "bg-orange-900/60 border-orange-700 text-orange-100",
+  },
+  relaxing: {
+    light: "bg-green-100 border-green-300 text-green-900",
+    dark: "bg-green-900/60 border-green-700 text-green-100",
+  },
+  creative: {
+    light: "bg-purple-100 border-purple-300 text-purple-900",
+    dark: "bg-purple-900/60 border-purple-700 text-purple-100",
+  },
+  energetic: {
+    light: "bg-red-100 border-red-300 text-red-900",
+    dark: "bg-red-900/60 border-red-700 text-red-100",
+  },
+  social: {
+    light: "bg-blue-100 border-blue-300 text-blue-900",
+    dark: "bg-blue-900/60 border-blue-700 text-blue-100",
+  },
+};
+
+function slotId(day: "saturday" | "sunday", hour: number) {
+  return `${day}-${hour}`;
+}
 
 const WeekendSchedule: React.FC<Props> = ({
   saturday,
   sunday,
-  onDrop,
+  selectedActivity,
+  isTouch,
+  onSlotTap,
   onRemoveActivity,
+  onMoveSchedule,
+  onResizeSchedule,
 }) => {
   const { theme } = useThemeContext();
   const isDark = theme === "dark";
   const [activeDay, setActiveDay] = useState<"saturday" | "sunday">("saturday");
 
-  const [focusedSlot, setFocusedSlot] = useState<{
-    day: "saturday" | "sunday";
-    index: number;
-  } | null>(null);
-
-  const parseHour = (time: string) => {
-    const [h, rest] = time.split(":");
-    let hour = parseInt(h, 10);
-    if (rest.includes("PM") && hour !== 12) hour += 12;
-    if (rest.includes("AM") && hour === 12) hour = 0;
-    return hour;
+  const handleMoveByHour = (
+    id: string,
+    day: "saturday" | "sunday",
+    hour: number
+  ) => {
+    onMoveSchedule(id, day, formatTime(hour));
   };
-
-  const formatTime = (hour: number) => {
-    const suffix = hour >= 12 ? "PM" : "AM";
-    const display = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-    return `${display}:00 ${suffix}`;
-  };
-
-  const getEndTime = (start: string, duration: number) => {
-    const startHour = parseHour(start);
-    const endHour = (startHour + duration) % 24;
-    return formatTime(endHour);
-  };
-
-  useEffect(() => {
-    const handleGlobalKey = (e: KeyboardEvent) => {
-      if (!focusedSlot) return;
-      let { day, index } = focusedSlot;
-      const list = day === "saturday" ? saturday : sunday;
-
-      if (!list || list.length === 0) return;
-
-      if (e.key === "ArrowDown") {
-        index = (index + 1) % TIME_SLOTS.length;
-        setFocusedSlot({ day, index });
-      } else if (e.key === "ArrowUp") {
-        index = (index - 1 + TIME_SLOTS.length) % TIME_SLOTS.length;
-        setFocusedSlot({ day, index });
-      } else if (e.key === "ArrowLeft") {
-        const otherDay = day === "saturday" ? "sunday" : "saturday";
-        setActiveDay(otherDay);
-        setFocusedSlot({ day: otherDay, index: 0 });
-      } else if (e.key === "ArrowRight") {
-        const otherDay = day === "saturday" ? "sunday" : "saturday";
-        setActiveDay(otherDay);
-        setFocusedSlot({ day: otherDay, index: 0 });
-      } else if (e.key === "Delete" || e.key === "Backspace") {
-        const slotEvent = list.find(
-          (ev) => parseHour(ev.startTime) === TIME_SLOTS[index]
-        );
-        if (slotEvent) onRemoveActivity(slotEvent.id);
-      }
-    };
-
-    window.addEventListener("keydown", handleGlobalKey);
-    return () => window.removeEventListener("keydown", handleGlobalKey);
-  }, [focusedSlot, saturday, sunday]);
-
-  useEffect(() => {
-    setFocusedSlot({ day: "saturday", index: 0 });
-  }, []);
 
   const DayColumn = ({
     day,
@@ -100,79 +87,95 @@ const WeekendSchedule: React.FC<Props> = ({
     const sorted = [...items].sort(
       (a, b) => parseHour(a.startTime) - parseHour(b.startTime)
     );
-    const occupiedHours: number[] = [];
+    const occupiedHours = new Set<number>();
     sorted.forEach((ev) => {
-      const start = parseHour(ev.startTime);
-      for (let i = 0; i < ev.activity.duration; i++)
-        occupiedHours.push(start + i);
+      getOccupiedHours(ev.startTime, getScheduleDuration(ev)).forEach((h) =>
+        occupiedHours.add(h)
+      );
     });
 
     return (
-      <div className="flex-1 p-4">
-        <h4 className="font-bold text-lg mb-4 text-center capitalize">{day}</h4>
-        <div className="flex flex-col gap-2">
-          {TIME_SLOTS.map((hour, idx) => {
+      <div className="flex-1">
+        <h4 className="font-bold text-base sm:text-lg mb-3 text-center capitalize flex items-center justify-center gap-2">
+          <span
+            className={`w-2 h-2 rounded-full ${
+              day === "saturday" ? "bg-indigo-500" : "bg-violet-500"
+            }`}
+          />
+          {day}
+          <span className="text-xs sm:text-sm font-normal opacity-60">
+            ({items.length})
+          </span>
+        </h4>
+        <div className="flex flex-col gap-2 max-h-[min(60vh,480px)] overflow-y-auto scrollbar-thin pr-1">
+          {TIME_SLOTS.map((hour) => {
             const event = sorted.find((ev) => parseHour(ev.startTime) === hour);
+            const id = slotId(day, hour);
+            const canTapAdd = isTouch && selectedActivity && !event;
+
             if (event) {
-              const duration = event.activity.duration;
-              const endTime = getEndTime(event.startTime, duration);
+              const moodStyle =
+                MOOD_STYLES[event.activity.mood] ?? MOOD_STYLES.relaxing;
+              const maxDuration = SCHEDULE_END - parseHour(event.startTime) + 1;
+
               return (
-                <motion.div
-                  key={event.id}
-                  id={`${day}-slot-${idx}`}
-                  tabIndex={0}
-                  layout
-                  className={`border rounded px-3 py-2 flex flex-col justify-between shadow-sm cursor-move outline-none focus:ring-2 focus:ring-blue-500 ${
-                    isDark
-                      ? "bg-blue-900 text-white"
-                      : "bg-blue-100 text-blue-800"
-                  }`}
-                >
-                  <div
-                    draggable
-                    onDragStart={(e: React.DragEvent<HTMLDivElement>) =>
-                      e.dataTransfer.setData(
-                        "application/json",
-                        JSON.stringify({ type: "schedule", id: event.id })
-                      )
-                    }
-                    className="flex flex-col"
-                  >
-                    <div className="flex justify-between items-center">
-                      <span>
-                        {event.activity.icon} {event.activity.name} ({duration}
-                        h)
-                      </span>
-                      <Trash2
-                        className="cursor-pointer text-gray-400 hover:text-red-500"
-                        onClick={() => onRemoveActivity(event.id)}
-                      />
-                    </div>
-                    <span className="text-xs opacity-80">
-                      {event.startTime} → {endTime}
-                    </span>
-                  </div>
-                </motion.div>
+                <DroppableSlot key={event.id} id={id}>
+                  <ScheduleEventBlock
+                    event={event}
+                    day={day}
+                    isDark={isDark}
+                    moodClass={isDark ? moodStyle.dark : moodStyle.light}
+                    maxDuration={maxDuration}
+                    onRemove={onRemoveActivity}
+                    onMove={handleMoveByHour}
+                    onResize={onResizeSchedule}
+                  />
+                </DroppableSlot>
               );
-            } else if (!occupiedHours.includes(hour)) {
+            }
+
+            if (!occupiedHours.has(hour)) {
               return (
-                <div
-                  key={`slot-${hour}`}
-                  id={`${day}-slot-${idx}`}
+                <DroppableSlot
+                  key={id}
+                  id={id}
+                  role="button"
                   tabIndex={0}
-                  className={`border border-dashed rounded px-3 py-2 cursor-pointer text-center outline-none focus:ring-2 focus:ring-blue-500 ${
+                  onClick={() => onSlotTap(day, formatTime(hour))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ")
+                      onSlotTap(day, formatTime(hour));
+                  }}
+                  className={`w-full border border-dashed rounded-lg px-3 py-3 text-center text-sm transition-all touch-manipulation min-h-[52px] cursor-pointer ${
                     isDark
                       ? "border-gray-600 text-gray-400"
                       : "border-gray-300 text-gray-500"
                   }`}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => onDrop(e, day, formatTime(hour))}
                 >
-                  Drop here ({formatTime(hour)})
-                </div>
+                  <span className="font-medium">{formatTime(hour)}</span>
+                  {canTapAdd ? (
+                    <span className="flex items-center justify-center gap-1 text-xs mt-1 text-indigo-500 font-semibold">
+                      <Plus className="w-3 h-3" />
+                      Add {selectedActivity?.name}
+                    </span>
+                  ) : (
+                    <span className="block text-xs mt-0.5 opacity-50">
+                      {isTouch ? "Tap to add" : "Drop here"}
+                    </span>
+                  )}
+                </DroppableSlot>
               );
             }
-            return null;
+
+            return (
+              <DroppableSlot
+                key={id}
+                id={id}
+                className="h-3 rounded min-h-[12px]"
+              >
+                <span className="sr-only">{formatTime(hour)}</span>
+              </DroppableSlot>
+            );
           })}
         </div>
       </div>
@@ -180,18 +183,26 @@ const WeekendSchedule: React.FC<Props> = ({
   };
 
   return (
-    <div className="w-full flex flex-col items-center gap-8">
-      <div className="flex gap-4">
-        {["saturday", "sunday"].map((day) => (
+    <div className="w-full flex flex-col gap-4">
+      <div className="text-center px-1">
+        <h3 className="text-lg sm:text-xl font-bold">Weekend Schedule</h3>
+        <p className="text-xs sm:text-sm opacity-60 mt-1">
+          Drag activities here · Grip or ↑↓ to move · +/- to change length
+        </p>
+      </div>
+
+      <div className="flex gap-2 p-1 rounded-full bg-gray-200/50 dark:bg-gray-800/80 w-full max-w-sm mx-auto">
+        {(["saturday", "sunday"] as const).map((day) => (
           <button
             key={day}
-            onClick={() => setActiveDay(day as "saturday" | "sunday")}
-            className={`px-6 py-2 rounded-full font-semibold transition-all duration-300 shadow-md ${
+            type="button"
+            onClick={() => setActiveDay(day)}
+            className={`flex-1 py-2.5 rounded-full text-sm font-semibold transition touch-manipulation ${
               activeDay === day
-                ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white scale-105"
+                ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow"
                 : isDark
-                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                  ? "text-gray-400"
+                  : "text-gray-600"
             }`}
           >
             {day.charAt(0).toUpperCase() + day.slice(1)}
@@ -199,30 +210,12 @@ const WeekendSchedule: React.FC<Props> = ({
         ))}
       </div>
 
-      <div className="relative w-full max-w-5xl overflow-hidden">
-        <AnimatePresence mode="wait">
-          {activeDay === "saturday" ? (
-            <motion.div
-              key="saturday"
-              initial={{ x: -80, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 80, opacity: 0 }}
-              transition={{ duration: 0.6, ease: "easeInOut" }}
-            >
-              <DayColumn day="saturday" items={saturday} />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="sunday"
-              initial={{ x: 80, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -80, opacity: 0 }}
-              transition={{ duration: 0.6, ease: "easeInOut" }}
-            >
-              <DayColumn day="sunday" items={sunday} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <div className="w-full">
+        {activeDay === "saturday" ? (
+          <DayColumn day="saturday" items={saturday} />
+        ) : (
+          <DayColumn day="sunday" items={sunday} />
+        )}
       </div>
     </div>
   );

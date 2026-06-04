@@ -1,7 +1,9 @@
 import React from "react";
 import type { ScheduleItem } from "@/types";
+import { getScheduleDuration } from "@/types";
 import { useThemeContext } from "@/context/ThemeProvider";
 import { motion } from "framer-motion";
+import { parseHour } from "@/lib/time";
 
 interface Props {
   saturday: ScheduleItem[];
@@ -13,7 +15,10 @@ const WeekendSummary: React.FC<Props> = ({ saturday, sunday }) => {
   const isDark = theme === "dark";
 
   const all = [...saturday, ...sunday];
-  const totalHours = all.reduce((sum, i) => sum + i.activity.duration, 0);
+  const totalHours = all.reduce(
+    (sum, i) => sum + getScheduleDuration(i),
+    0
+  );
 
   const moodCount: Record<string, number> = {};
   all.forEach((i) => {
@@ -28,8 +33,17 @@ const WeekendSummary: React.FC<Props> = ({ saturday, sunday }) => {
     creative:
       "bg-purple-300 text-purple-800 dark:bg-purple-700 dark:text-purple-200",
     energetic: "bg-red-300 text-red-800 dark:bg-red-700 dark:text-red-200",
+    social:
+      "bg-blue-300 text-blue-800 dark:bg-blue-700 dark:text-blue-200",
     Default: "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
   };
+
+  const timeline = [...saturday, ...sunday].sort((a, b) => {
+    const dayOrder = a.day === "saturday" ? 0 : 1;
+    const dayOrderB = b.day === "saturday" ? 0 : 1;
+    if (dayOrder !== dayOrderB) return dayOrder - dayOrderB;
+    return parseHour(a.startTime) - parseHour(b.startTime);
+  });
 
 
   return (
@@ -50,6 +64,30 @@ const WeekendSummary: React.FC<Props> = ({ saturday, sunday }) => {
           Total Hours Planned: {totalHours}
         </p>
       </div>
+
+      {timeline.length > 0 && (
+        <div className="mb-4">
+          <p className="text-sm font-medium opacity-70 mb-2">Your timeline</p>
+          <ul className="space-y-1.5 max-h-32 overflow-y-auto scrollbar-thin">
+            {timeline.map((item) => (
+              <li
+                key={item.id}
+                className="text-sm flex items-center gap-2 opacity-90"
+              >
+                <span className="capitalize w-16 shrink-0 opacity-60">
+                  {item.day.slice(0, 3)}
+                </span>
+                <span className="shrink-0 w-20 opacity-80">
+                  {item.startTime}
+                </span>
+                <span>
+                  {item.activity.icon} {item.activity.name}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {Object.entries(moodCount).map(([m, v]) => {

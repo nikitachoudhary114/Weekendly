@@ -1,93 +1,116 @@
 import type { IActivity } from "@/types";
 import React from "react";
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import { Check, GripVertical } from "lucide-react";
 import { useThemeContext } from "@/context/ThemeProvider";
 
 interface ActivityCardProps {
   activity: IActivity;
-  onDragStart: (e: React.DragEvent, activity: IActivity) => void;
+  isSelected: boolean;
+  onSelect: () => void;
 }
+
+const categoryColorsDark: Record<string, string> = {
+  indoor: "bg-green-500/80",
+  outdoor: "bg-blue-500/80",
+  food: "bg-orange-400/80",
+  social: "bg-purple-500/80",
+  relaxation: "bg-teal-400/80",
+  fitness: "bg-red-500/80",
+  culture: "bg-yellow-400/80",
+};
+
+const categoryColorsLight: Record<string, string> = {
+  indoor: "bg-green-600/30",
+  outdoor: "bg-blue-600/30",
+  food: "bg-orange-500/30",
+  social: "bg-purple-600/30",
+  relaxation: "bg-teal-500/30",
+  fitness: "bg-red-500/30",
+  culture: "bg-yellow-500/30",
+};
 
 const ActivityCard: React.FC<ActivityCardProps> = ({
   activity,
-  onDragStart,
+  isSelected,
+  onSelect,
 }) => {
   const { theme } = useThemeContext();
   const isDark = theme === "dark";
 
-  // Minimal neon-ish bright category colors
-  const categoryColorsDark: Record<string, string> = {
-    indoor: "bg-green-500/80",
-    outdoor: "bg-blue-500/80",
-    food: "bg-orange-400/80",
-    social: "bg-purple-500/80",
-    relaxation: "bg-teal-400/80",
-    fitness: "bg-red-500/80",
-    culture: "bg-yellow-400/80",
-  };
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: `library-${activity.id}`,
+      data: {
+        type: "activity" as const,
+        activity,
+        label: `${activity.icon} ${activity.name}`,
+      },
+    });
 
-  const categoryColorsLight: Record<string, string> = {
-    indoor: "bg-green-600/30",
-    outdoor: "bg-blue-600/30",
-    food: "bg-orange-500/30",
-    social: "bg-purple-600/30",
-    relaxation: "bg-teal-500/30",
-    fitness: "bg-red-500/30",
-    culture: "bg-yellow-500/30",
-  };
+  const style = transform
+    ? { transform: CSS.Translate.toString(transform) }
+    : undefined;
 
   return (
     <div
-      draggable
-      onDragStart={(e) => onDragStart(e, activity)}
-      className={`rounded-xl p-4 cursor-grab active:cursor-grabbing transform transition-all duration-300 
-        ${
-          isDark
-            ? "bg-gray-900 hover:bg-gray-800 border-gray-700 text-white"
-            : "bg-gray-100 hover:bg-white border-gray-200 text-gray-900"
-        } 
-        shadow-lg hover:shadow-2xl hover:scale-105 border`}
+      ref={setNodeRef}
+      style={style}
+      onClick={onSelect}
+      className={`rounded-xl p-4 border text-left w-full transition-shadow touch-manipulation ${
+        isSelected
+          ? "ring-2 ring-indigo-500 border-indigo-500 shadow-lg"
+          : "hover:shadow-md"
+      } ${
+        isDragging ? "opacity-40 shadow-xl z-10" : ""
+      } ${
+        isDark
+          ? "bg-gray-900 hover:bg-gray-800 border-gray-700 text-white"
+          : "bg-gray-50 hover:bg-white border-gray-200 text-gray-900"
+      } cursor-grab active:cursor-grabbing`}
+      {...attributes}
+      {...listeners}
     >
-      <div className="flex justify-between items-start mb-2">
-        <div className={`text-3xl ${isDark ? "text-white" : "text-gray-800"}`}>
-          {activity.icon}
+      <div className="flex justify-between items-start mb-2 gap-2">
+        <div className="flex items-center gap-2">
+          <GripVertical className="w-4 h-4 opacity-30 shrink-0" />
+          <span className="text-2xl">{activity.icon}</span>
         </div>
-        <span
-          className={`text-xs font-semibold px-2 py-1 rounded-full ${
-            isDark
-              ? categoryColorsDark[activity.category]
-              : categoryColorsLight[activity.category]
-          } ${isDark ? "text-white" : "text-gray-900"}`}
-        >
-          {activity.category}
-        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {isSelected && (
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-500 text-white">
+              <Check className="w-3.5 h-3.5" />
+            </span>
+          )}
+          <span
+            className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full ${
+              isDark
+                ? categoryColorsDark[activity.category]
+                : categoryColorsLight[activity.category]
+            }`}
+          >
+            {activity.category}
+          </span>
+        </div>
       </div>
-      <h4
-        className={`font-bold text-lg ${
-          isDark ? "text-white" : "text-gray-900"
-        }`}
-      >
-        {activity.name}
-      </h4>
+      <h4 className="font-bold text-base leading-tight">{activity.name}</h4>
       <p
-        className={`text-sm mt-1 ${isDark ? "text-gray-300" : "text-gray-600"}`}
+        className={`text-xs sm:text-sm mt-1 line-clamp-2 ${
+          isDark ? "text-gray-400" : "text-gray-600"
+        }`}
       >
         {activity.description}
       </p>
-      <div className="flex justify-between mt-3 text-sm">
+      <div className="flex justify-between mt-2 text-xs">
         <span
-          className={`px-2 py-1 rounded ${
-            isDark
-              ? "bg-gray-800/50 text-gray-200"
-              : "bg-gray-200 text-gray-800"
+          className={`px-2 py-0.5 rounded ${
+            isDark ? "bg-gray-800" : "bg-gray-200"
           }`}
         >
           {activity.duration}h
         </span>
-        <span
-          className={`capitalize ${isDark ? "text-gray-300" : "text-gray-700"}`}
-        >
-          {activity.mood}
-        </span>
+        <span className="capitalize opacity-70">{activity.mood}</span>
       </div>
     </div>
   );

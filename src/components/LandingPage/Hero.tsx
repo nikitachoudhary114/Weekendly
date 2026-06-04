@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
-import heroImage from "@/assets/hero2.jpg";
-import { CalendarDays, Sparkles, Heart } from "lucide-react";
+import { CalendarDays, Sparkles, Heart, Sun, Coffee, Music } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useThemeContext } from "@/context/ThemeProvider";
 import { motion } from "framer-motion";
@@ -149,20 +148,64 @@ const Hero = () => {
             </motion.div>
           </motion.div>
 
-          {/* Right Side - Hero Image */}
+          {/* Right Side - Interactive preview card */}
           <motion.div
             className="relative mt-8 lg:mt-0"
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.7, duration: 0.8 }}
           >
-            <img
-              src={heroImage}
-              alt="Friends planning their perfect weekend with Weekendly app"
-              className={`w-full h-auto rounded-2xl shadow-2xl border transition-colors ${
-                isDark ? "border-gray-700" : borderLight
+            <div
+              className={`relative w-full aspect-[4/3] rounded-2xl shadow-2xl border overflow-hidden ${
+                isDark
+                  ? "border-gray-700 bg-gradient-to-br from-gray-900 via-indigo-950 to-violet-950"
+                  : `border-gray-200 bg-gradient-to-br from-indigo-50 via-white to-cyan-50 ${borderLight}`
               }`}
-            />
+            >
+              <div className="absolute inset-0 p-6 flex flex-col justify-between">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-indigo-500">
+                    Saturday · Live
+                  </span>
+                  <span className="flex items-center gap-1 text-sm opacity-80">
+                    <Sun className="w-4 h-4 text-amber-400" />
+                    24°C
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { icon: Coffee, time: "9:00 AM", label: "Brunch & café", color: "from-orange-400/20 to-amber-400/20" },
+                    { icon: Sun, time: "2:00 PM", label: "Park walk", color: "from-green-400/20 to-emerald-400/20" },
+                    { icon: Music, time: "7:00 PM", label: "Live music", color: "from-violet-400/20 to-purple-400/20" },
+                  ].map((item, i) => (
+                    <motion.div
+                      key={i}
+                      className={`flex items-center gap-3 p-3 rounded-xl border backdrop-blur-sm ${
+                        isDark
+                          ? "border-gray-700 bg-gray-800/60"
+                          : "border-gray-200 bg-white/80"
+                      }`}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.9 + i * 0.15 }}
+                    >
+                      <div
+                        className={`w-10 h-10 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center`}
+                      >
+                        <item.icon className="w-5 h-5 text-indigo-600 dark:text-indigo-300" />
+                      </div>
+                      <div>
+                        <p className="text-xs opacity-60">{item.time}</p>
+                        <p className="font-semibold text-sm">{item.label}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+                <p className="text-xs text-center opacity-50">
+                  Drag activities · Weather-aware picks
+                </p>
+              </div>
+            </div>
             <motion.div
               className="absolute -top-4 -right-4 w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-tr from-indigo-500 to-cyan-400 rounded-full opacity-80 blur-lg"
               animate={{ y: [0, -10, 0] }}

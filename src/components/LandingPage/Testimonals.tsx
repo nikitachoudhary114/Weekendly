@@ -71,6 +71,7 @@ const Testimonials = () => {
 
   return (
     <section
+      id="reviews"
       className={`py-20 md:py-24 relative overflow-hidden transition-colors ${sectionBg}`}
     >
       {/* Background Glow Accents */}

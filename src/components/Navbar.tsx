@@ -73,9 +73,11 @@ const Navbar = () => {
             >
               Log In
             </Button>
-            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
-              Get Started
-            </Button>
+            <Link to="/activity">
+              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                Get Started
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -147,9 +149,11 @@ const Navbar = () => {
                 >
                   Log In
                 </Button>
-                <Button className="justify-start bg-indigo-600 hover:bg-indigo-700 text-white">
-                  Get Started
-                </Button>
+                <Link to="/activity" onClick={() => setIsMenuOpen(false)}>
+                  <Button className="w-full justify-start bg-indigo-600 hover:bg-indigo-700 text-white">
+                    Get Started
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>

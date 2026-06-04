@@ -82,6 +82,7 @@ const Features = () => {
 
   return (
     <section
+      id="features"
       className={`py-24 relative overflow-hidden transition-colors ${
         isDark
           ? "bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950"

@@ -33,27 +33,27 @@ const PlanActions: React.FC<Props> = ({ onClear, onSave, onExport }) => {
  
 
   return (
-    <div className="flex items-center gap-6 justify-center mr-2 ">
-      <div className={iconButtonClasses} onClick={onExport}>
+    <div className="flex items-center gap-6 justify-center mr-2">
+      <button type="button" className={iconButtonClasses} onClick={onExport}>
         <div className={circleClasses}>
           <Download size={20} />
         </div>
         <span>Export Poster</span>
-      </div>
+      </button>
 
-      <div className={iconButtonClasses} onClick={onSave}>
+      <button type="button" className={iconButtonClasses} onClick={onSave}>
         <div className={circleClasses}>
           <Save size={20} />
         </div>
         <span>Save</span>
-      </div>
+      </button>
 
-      <div className={iconButtonClasses} onClick={onClear}>
+      <button type="button" className={iconButtonClasses} onClick={onClear}>
         <div className={circleClasses}>
           <Trash2 size={20} />
         </div>
         <span>Clear All</span>
-      </div>
+      </button>
     </div>
   );
 };
