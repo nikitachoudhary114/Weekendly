@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import { useRecoilValue } from "recoil";
 import { Plus } from "lucide-react";
-import type { IActivity, ScheduleItem } from "@/types";
+import { weekendStateAtom, selectedActivityAtom } from "@/recoil/atoms";
 import { getScheduleDuration } from "@/types";
-import { useThemeContext } from "@/context/ThemeProvider";
+import { useTheme } from "@/hooks/useTheme";
 import ScheduleEventBlock from "./ScheduleEventBlock";
 import DroppableSlot from "./DroppableSlot";
 import {
@@ -14,9 +15,6 @@ import {
 } from "@/lib/time";
 
 interface Props {
-  saturday: ScheduleItem[];
-  sunday: ScheduleItem[];
-  selectedActivity: IActivity | null;
   isTouch: boolean;
   onSlotTap: (day: "saturday" | "sunday", time: string) => void;
   onRemoveActivity: (id: string) => void;
@@ -56,17 +54,15 @@ function slotId(day: "saturday" | "sunday", hour: number) {
 }
 
 const WeekendSchedule: React.FC<Props> = ({
-  saturday,
-  sunday,
-  selectedActivity,
   isTouch,
   onSlotTap,
   onRemoveActivity,
   onMoveSchedule,
   onResizeSchedule,
 }) => {
-  const { theme } = useThemeContext();
-  const isDark = theme === "dark";
+  const { saturday, sunday } = useRecoilValue(weekendStateAtom);
+  const selectedActivity = useRecoilValue(selectedActivityAtom);
+  const { isDark } = useTheme();
   const [activeDay, setActiveDay] = useState<"saturday" | "sunday">("saturday");
 
   const handleMoveByHour = (
@@ -82,7 +78,7 @@ const WeekendSchedule: React.FC<Props> = ({
     items,
   }: {
     day: "saturday" | "sunday";
-    items: ScheduleItem[];
+    items: typeof saturday;
   }) => {
     const sorted = [...items].sort(
       (a, b) => parseHour(a.startTime) - parseHour(b.startTime)
@@ -168,11 +164,7 @@ const WeekendSchedule: React.FC<Props> = ({
             }
 
             return (
-              <DroppableSlot
-                key={id}
-                id={id}
-                className="h-3 rounded min-h-[12px]"
-              >
+              <DroppableSlot key={id} id={id} className="h-3 rounded min-h-[12px]">
                 <span className="sr-only">{formatTime(hour)}</span>
               </DroppableSlot>
             );

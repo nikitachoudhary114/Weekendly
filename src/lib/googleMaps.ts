@@ -9,7 +9,9 @@ export function getGoogleMapsApiKey(): string | undefined {
 export async function loadGoogleMaps(): Promise<typeof google> {
   const apiKey = getGoogleMapsApiKey();
   if (!apiKey) {
-    throw new Error("Add VITE_GOOGLE_MAPS_API_KEY to .env.local");
+    throw new Error(
+      "VITE_GOOGLE_MAPS_API_KEY is not set. Add it to your host env vars and redeploy."
+    );
   }
 
   if (!initialized) {

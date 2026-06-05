@@ -1,19 +1,15 @@
 import React from "react";
-import type { ScheduleItem } from "@/types";
 import { Download, Save, Trash2 } from "lucide-react";
-import { useThemeContext } from "@/context/ThemeProvider";
+import { useTheme } from "@/hooks/useTheme";
 
 interface Props {
-  saturday: ScheduleItem[];
-  sunday: ScheduleItem[];
   onClear: () => void;
   onSave: () => void;
   onExport: () => void;
 }
 
 const PlanActions: React.FC<Props> = ({ onClear, onSave, onExport }) => {
-  const { theme } = useThemeContext();
-  const isDark = theme === "dark";
+  const { isDark } = useTheme();
 
   const iconButtonClasses = `
     flex flex-col items-center gap-2
@@ -29,8 +25,6 @@ const PlanActions: React.FC<Props> = ({ onClear, onSave, onExport }) => {
         : "bg-white text-gray-700 hover:bg-gray-100"
     }
   `;
-
- 
 
   return (
     <div className="flex items-center gap-6 justify-center mr-2">

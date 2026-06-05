@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
-import type { IActivity, ScheduleItem } from "@/types";
+import { useCallback } from "react";
 import Header from "@/components/ActivityPage/Header";
 import ActivityLibrary from "@/components/ActivityPage/ActivityLibrary";
 import { activities } from "@/data/activities";
@@ -8,12 +7,16 @@ import WeekendSummary from "@/components/ActivityPage/WeekendSummary";
 import PlanActions from "@/components/ActivityPage/PlanActions";
 import LiveInsights from "@/components/ActivityPage/LiveInsights";
 import PlannerHowTo from "@/components/ActivityPage/PlannerHowTo";
-import PlannerTabs, { type PlannerTab } from "@/components/ActivityPage/PlannerTabs";
-import { useToast } from "@/components/ui/toaster";
-import { useThemeContext } from "@/context/ThemeProvider";
+import PlannerTabs from "@/components/ActivityPage/PlannerTabs";
+import { useTheme } from "@/hooks/useTheme";
 import { useIsTouchDevice } from "@/hooks/useIsTouchDevice";
+import { usePlannerActions } from "@/hooks/usePlannerActions";
 import * as htmlToImage from "html-to-image";
 import { motion } from "framer-motion";
+import { useRecoilState, useRecoilValue } from "recoil";
+import { dragLabelAtom, plannerTabAtom } from "@/recoil/atoms";
+import { scheduleCountSelector } from "@/recoil/selectors";
+import { useToast } from "@/components/ui/toaster";
 import {
   DndContext,
   DragOverlay,
@@ -25,119 +28,35 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import {
-  addActivityToPlan,
-  moveScheduleItem,
-  resizeScheduleItem,
-  type WeekendState,
-} from "@/lib/plannerActions";
 import type { DragPayload } from "@/types/drag";
 import { parseSlotId } from "@/lib/parseSlotId";
 
-function parseStoredSchedule(raw: string | null): ScheduleItem[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as ScheduleItem[];
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter(
-        (item) =>
-          item?.id &&
-          item?.activity?.duration &&
-          item?.startTime &&
-          (item.day === "saturday" || item.day === "sunday")
-      )
-      .map((item) => ({
-        ...item,
-        duration: item.duration ?? item.activity.duration,
-      }));
-  } catch {
-    return [];
-  }
-}
-
 function Activity() {
-  const [weekend, setWeekend] = useState<WeekendState>({
-    saturday: [],
-    sunday: [],
-  });
-  const [selectedActivity, setSelectedActivity] = useState<IActivity | null>(
-    null
-  );
-  const [mobileTab, setMobileTab] = useState<PlannerTab>("library");
-  const [dragLabel, setDragLabel] = useState<string | null>(null);
-
-  const { toast } = useToast();
-  const { theme } = useThemeContext();
-  const isDark = theme === "dark";
+  const { isDark } = useTheme();
   const isTouch = useIsTouchDevice();
+  const { toast } = useToast();
 
-  const { saturday, sunday } = weekend;
-  const scheduleCount = saturday.length + sunday.length;
+  const [mobileTab, setMobileTab] = useRecoilState(plannerTabAtom);
+  const [dragLabel, setDragLabel] = useRecoilState(dragLabelAtom);
+  const scheduleCount = useRecoilValue(scheduleCountSelector);
+
+  const {
+    selectedActivity,
+    applyPayload,
+    handleSlotTap,
+    handleSelectActivity,
+    handleMoveSchedule,
+    handleResizeSchedule,
+    handleRemove,
+    handleClear,
+    handleSave,
+  } = usePlannerActions();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, {
       activationConstraint: { delay: 120, tolerance: 6 },
     })
-  );
-
-  useEffect(() => {
-    setWeekend({
-      saturday: parseStoredSchedule(localStorage.getItem("saturday")),
-      sunday: parseStoredSchedule(localStorage.getItem("sunday")),
-    });
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("saturday", JSON.stringify(saturday));
-    localStorage.setItem("sunday", JSON.stringify(sunday));
-  }, [saturday, sunday]);
-
-  const applyPayload = useCallback(
-    (payload: DragPayload, day: "saturday" | "sunday", time: string) => {
-      let success = false;
-
-      setWeekend((prev) => {
-        if (payload.type === "schedule") {
-          const next = moveScheduleItem(prev, payload.id, day, time);
-          if (!next) return prev;
-          success = true;
-          return next;
-        }
-
-        const next = addActivityToPlan(prev, payload.activity, day, time);
-        if (!next) return prev;
-        success = true;
-        return next;
-      });
-
-      if (!success) {
-        toast({
-          title: "Can't place here",
-          description:
-            payload.type === "activity"
-              ? `${payload.activity.name} doesn't fit at ${time}.`
-              : "Must end by 11 PM — try an earlier slot.",
-        });
-        return false;
-      }
-
-      if (payload.type === "activity") {
-        setSelectedActivity(null);
-        toast({
-          title: "Added!",
-          description: `${payload.activity.name} on ${day} at ${time}.`,
-        });
-      } else {
-        toast({
-          title: "Moved",
-          description: `Rescheduled to ${day} at ${time}.`,
-        });
-      }
-      return true;
-    },
-    [toast]
   );
 
   const handleDndDragStart = (event: DragStartEvent) => {
@@ -174,93 +93,7 @@ function Activity() {
     }
   };
 
-  const handleSlotTap = useCallback(
-    (day: "saturday" | "sunday", time: string) => {
-      if (!selectedActivity) {
-        toast({
-          title: "Pick an activity first",
-          description: "Tap one in the Activities tab, then tap a time slot.",
-        });
-        setMobileTab("library");
-        return;
-      }
-      applyPayload(
-        { type: "activity", activity: selectedActivity },
-        day,
-        time
-      );
-    },
-    [selectedActivity, applyPayload, toast]
-  );
-
-  const handleSelectActivity = useCallback(
-    (activity: IActivity) => {
-      setSelectedActivity((prev) =>
-        prev?.id === activity.id ? null : activity
-      );
-      if (isTouch) setMobileTab("schedule");
-    },
-    [isTouch]
-  );
-
-  const handleMoveSchedule = useCallback(
-    (id: string, day: "saturday" | "sunday", time: string) => {
-      let success = false;
-      setWeekend((prev) => {
-        const next = moveScheduleItem(prev, id, day, time);
-        if (!next) return prev;
-        success = true;
-        return next;
-      });
-      if (!success) {
-        toast({
-          title: "Can't move here",
-          description: "Doesn't fit before 11 PM or overlaps another event.",
-        });
-      }
-    },
-    [toast]
-  );
-
-  const handleResizeSchedule = useCallback(
-    (id: string, newDuration: number) => {
-      let success = false;
-      setWeekend((prev) => {
-        const next = resizeScheduleItem(prev, id, newDuration);
-        if (!next) return prev;
-        success = true;
-        return next;
-      });
-      if (!success) {
-        toast({
-          title: "Can't extend",
-          description: "Not enough room before 11 PM or another event is in the way.",
-        });
-      }
-    },
-    [toast]
-  );
-
-  const handleRemove = (id: string) => {
-    setWeekend((prev) => ({
-      saturday: prev.saturday.filter((i) => i.id !== id),
-      sunday: prev.sunday.filter((i) => i.id !== id),
-    }));
-  };
-
-  const handleClear = () => {
-    setWeekend({ saturday: [], sunday: [] });
-    setSelectedActivity(null);
-    toast({ title: "Plan cleared", description: "Your schedule is empty." });
-  };
-
-  const handleSave = () =>
-    toast({
-      title: "Plan saved",
-      description: "Auto-saved to this browser.",
-    });
-
-  const exportPoster = () => {
+  const exportPoster = useCallback(() => {
     const schedule = document.getElementById("schedule-export-all");
     if (!schedule) return;
 
@@ -282,7 +115,7 @@ function Activity() {
           description: "Try again or reduce schedule size.",
         })
       );
-  };
+  }, [isDark, toast]);
 
   const panelClass = `rounded-2xl p-4 sm:p-6 backdrop-blur-md border transition-colors ${
     isDark
@@ -341,13 +174,12 @@ function Activity() {
             <div className={panelClass}>
               <ActivityLibrary
                 activities={activities}
-                selectedId={selectedActivity?.id ?? null}
                 isTouch={isTouch}
-                onSelectActivity={handleSelectActivity}
+                onSelectActivity={(a) => handleSelectActivity(a, isTouch)}
               />
             </div>
             <div className={`${panelClass} hidden lg:block`}>
-              <WeekendSummary saturday={saturday} sunday={sunday} />
+              <WeekendSummary />
             </div>
           </div>
 
@@ -358,9 +190,6 @@ function Activity() {
           >
             <div id="schedule-export-all" className={panelClass}>
               <WeekendSchedule
-                saturday={saturday}
-                sunday={sunday}
-                selectedActivity={selectedActivity}
                 isTouch={isTouch}
                 onSlotTap={handleSlotTap}
                 onRemoveActivity={handleRemove}
@@ -369,8 +198,6 @@ function Activity() {
               />
             </div>
             <PlanActions
-              saturday={saturday}
-              sunday={sunday}
               onClear={handleClear}
               onSave={handleSave}
               onExport={exportPoster}
@@ -380,7 +207,7 @@ function Activity() {
           <div
             className={`lg:hidden ${showSummary ? "block" : "hidden"} ${panelClass}`}
           >
-            <WeekendSummary saturday={saturday} sunday={sunday} />
+            <WeekendSummary />
           </div>
         </motion.div>
 

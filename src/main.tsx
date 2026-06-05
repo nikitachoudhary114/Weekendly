@@ -1,13 +1,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { RecoilRoot } from "recoil";
 import "./index.css";
 import App from "./App.tsx";
 import { BrowserRouter } from "react-router-dom";
-import { ThemeProvider } from "@/context/ThemeProvider";
 
 import { registerSW } from "virtual:pwa-register";
 
-// register service worker
 registerSW({
   onOfflineReady() {
     console.log("App ready offline!");
@@ -19,10 +18,10 @@ registerSW({
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
-      <ThemeProvider>
+    <RecoilRoot>
+      <BrowserRouter>
         <App />
-      </ThemeProvider>
-    </BrowserRouter>
+      </BrowserRouter>
+    </RecoilRoot>
   </StrictMode>
 );

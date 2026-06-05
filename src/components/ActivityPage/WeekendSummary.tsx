@@ -1,18 +1,14 @@
 import React from "react";
-import type { ScheduleItem } from "@/types";
+import { useRecoilValue } from "recoil";
+import { weekendStateAtom } from "@/recoil/atoms";
 import { getScheduleDuration } from "@/types";
-import { useThemeContext } from "@/context/ThemeProvider";
+import { useTheme } from "@/hooks/useTheme";
 import { motion } from "framer-motion";
 import { parseHour } from "@/lib/time";
 
-interface Props {
-  saturday: ScheduleItem[];
-  sunday: ScheduleItem[];
-}
-
-const WeekendSummary: React.FC<Props> = ({ saturday, sunday }) => {
-  const { theme } = useThemeContext();
-  const isDark = theme === "dark";
+const WeekendSummary: React.FC = () => {
+  const { saturday, sunday } = useRecoilValue(weekendStateAtom);
+  const { isDark } = useTheme();
 
   const all = [...saturday, ...sunday];
   const totalHours = all.reduce(
@@ -45,16 +41,13 @@ const WeekendSummary: React.FC<Props> = ({ saturday, sunday }) => {
     return parseHour(a.startTime) - parseHour(b.startTime);
   });
 
-
   return (
     <div
-      className={`w-full p-6 rounded-2xl mb-8 shadow-lg transition-colors duration-300 
-        ${
-          isDark
-            ? "bg-gray-900 text-gray-100 shadow-gray-800"
-            : "bg-white text-gray-900 shadow-gray-200"
-        }
-      `}
+      className={`w-full p-6 rounded-2xl mb-8 shadow-lg transition-colors duration-300 ${
+        isDark
+          ? "bg-gray-900 text-gray-100 shadow-gray-800"
+          : "bg-white text-gray-900 shadow-gray-200"
+      }`}
     >
       <h4 className="font-bold text-xl sm:text-2xl mb-4">Weekend Summary</h4>
 

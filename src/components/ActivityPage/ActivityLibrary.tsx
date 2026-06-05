@@ -1,24 +1,24 @@
 import React, { useState } from "react";
+import { useRecoilValue } from "recoil";
 import ActivityCard from "./ActivityCard";
 import { Search, Filter } from "lucide-react";
 import type { IActivity } from "@/types";
-import { useThemeContext } from "@/context/ThemeProvider";
+import { selectedActivityAtom } from "@/recoil/atoms";
+import { useTheme } from "@/hooks/useTheme";
 
 interface Props {
   activities: IActivity[];
-  selectedId: string | null;
   isTouch: boolean;
   onSelectActivity: (activity: IActivity) => void;
 }
 
 const ActivityLibrary: React.FC<Props> = ({
   activities,
-  selectedId,
   isTouch,
   onSelectActivity,
 }) => {
-  const { theme } = useThemeContext();
-  const isDark = theme === "dark";
+  const { isDark } = useTheme();
+  const selectedId = useRecoilValue(selectedActivityAtom)?.id ?? null;
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");

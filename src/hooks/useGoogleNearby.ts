@@ -152,7 +152,9 @@ export function useGoogleNearby(
   const fetchPlaces = useCallback(async () => {
     if (!coords) return;
     if (!getGoogleMapsApiKey()) {
-      setError("Google API key missing — add .env.local");
+      setError(
+        "Google API key missing. Set VITE_GOOGLE_MAPS_API_KEY on your host, then redeploy."
+      );
       return;
     }
 
