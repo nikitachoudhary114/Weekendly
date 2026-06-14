@@ -22,7 +22,10 @@ export function parseStoredSchedule(raw: string | null): ScheduleItem[] {
   }
 }
 
-export function loadWeekendFromStorage() {
+export function loadWeekendFromStorage(): {
+  saturday: ScheduleItem[];
+  sunday: ScheduleItem[];
+} {
   return {
     saturday: parseStoredSchedule(localStorage.getItem("saturday")),
     sunday: parseStoredSchedule(localStorage.getItem("sunday")),

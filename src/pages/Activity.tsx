@@ -13,9 +13,8 @@ import { useIsTouchDevice } from "@/hooks/useIsTouchDevice";
 import { usePlannerActions } from "@/hooks/usePlannerActions";
 import * as htmlToImage from "html-to-image";
 import { motion } from "framer-motion";
-import { useRecoilState, useRecoilValue } from "recoil";
-import { dragLabelAtom, plannerTabAtom } from "@/recoil/atoms";
-import { scheduleCountSelector } from "@/recoil/selectors";
+import { useAtom, useAtomValue } from "jotai";
+import { dragLabelAtom, plannerTabAtom, scheduleCountAtom } from "@/store/atoms";
 import { useToast } from "@/components/ui/toaster";
 import {
   DndContext,
@@ -36,9 +35,9 @@ function Activity() {
   const isTouch = useIsTouchDevice();
   const { toast } = useToast();
 
-  const [mobileTab, setMobileTab] = useRecoilState(plannerTabAtom);
-  const [dragLabel, setDragLabel] = useRecoilState(dragLabelAtom);
-  const scheduleCount = useRecoilValue(scheduleCountSelector);
+  const [mobileTab, setMobileTab] = useAtom(plannerTabAtom);
+  const [dragLabel, setDragLabel] = useAtom(dragLabelAtom);
+  const scheduleCount = useAtomValue(scheduleCountAtom);
 
   const {
     selectedActivity,

@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { useRecoilValue } from "recoil";
 import ActivityCard from "./ActivityCard";
+import { useAtomValue } from "jotai";
 import { Search, Filter } from "lucide-react";
 import type { IActivity } from "@/types";
-import { selectedActivityAtom } from "@/recoil/atoms";
+import { selectedActivityAtom } from "@/store/atoms";
 import { useTheme } from "@/hooks/useTheme";
 
 interface Props {
@@ -18,7 +18,7 @@ const ActivityLibrary: React.FC<Props> = ({
   onSelectActivity,
 }) => {
   const { isDark } = useTheme();
-  const selectedId = useRecoilValue(selectedActivityAtom)?.id ?? null;
+  const selectedId = useAtomValue(selectedActivityAtom)?.id ?? null;
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");

@@ -1,14 +1,13 @@
-import { useRecoilState } from "recoil";
+import { useAtom } from "jotai";
 import { useEffect } from "react";
-import { themeAtom } from "@/recoil/atoms";
+import { themeAtom } from "@/store/atoms";
 
 export function useTheme() {
-  const [theme, setTheme] = useRecoilState(themeAtom);
+  const [theme, setTheme] = useAtom(themeAtom);
 
   useEffect(() => {
     document.documentElement.classList.remove("light", "dark");
     document.documentElement.classList.add(theme);
-    localStorage.setItem("theme", theme);
   }, [theme]);
 
   const toggleTheme = () =>
@@ -17,5 +16,5 @@ export function useTheme() {
   return { theme, toggleTheme, isDark: theme === "dark" };
 }
 
-/** @deprecated Use useTheme() — kept for gradual migration */
+/** @deprecated Use useTheme() */
 export const useThemeContext = useTheme;

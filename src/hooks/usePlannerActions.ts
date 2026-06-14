@@ -1,10 +1,10 @@
 import { useCallback } from "react";
-import { useRecoilState, useSetRecoilState } from "recoil";
+import { useAtom, useSetAtom } from "jotai";
 import {
   weekendStateAtom,
   selectedActivityAtom,
   plannerTabAtom,
-} from "@/recoil/atoms";
+} from "@/store/atoms";
 import {
   addActivityToPlan,
   moveScheduleItem,
@@ -15,10 +15,9 @@ import type { IActivity } from "@/types";
 import { useToast } from "@/components/ui/toaster";
 
 export function usePlannerActions() {
-  const [weekend, setWeekend] = useRecoilState(weekendStateAtom);
-  const [selectedActivity, setSelectedActivity] =
-    useRecoilState(selectedActivityAtom);
-  const setPlannerTab = useSetRecoilState(plannerTabAtom);
+  const [weekend, setWeekend] = useAtom(weekendStateAtom);
+  const [selectedActivity, setSelectedActivity] = useAtom(selectedActivityAtom);
+  const setPlannerTab = useSetAtom(plannerTabAtom);
   const { toast } = useToast();
 
   const applyPayload = useCallback(

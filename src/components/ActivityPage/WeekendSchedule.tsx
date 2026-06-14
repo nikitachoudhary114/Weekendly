@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { useRecoilValue } from "recoil";
+import { useAtomValue } from "jotai";
 import { Plus } from "lucide-react";
-import { weekendStateAtom, selectedActivityAtom } from "@/recoil/atoms";
+import { weekendStateAtom, selectedActivityAtom } from "@/store/atoms";
 import { getScheduleDuration } from "@/types";
 import { useTheme } from "@/hooks/useTheme";
 import ScheduleEventBlock from "./ScheduleEventBlock";
@@ -60,8 +60,8 @@ const WeekendSchedule: React.FC<Props> = ({
   onMoveSchedule,
   onResizeSchedule,
 }) => {
-  const { saturday, sunday } = useRecoilValue(weekendStateAtom);
-  const selectedActivity = useRecoilValue(selectedActivityAtom);
+  const { saturday, sunday } = useAtomValue(weekendStateAtom);
+  const selectedActivity = useAtomValue(selectedActivityAtom);
   const { isDark } = useTheme();
   const [activeDay, setActiveDay] = useState<"saturday" | "sunday">("saturday");
 

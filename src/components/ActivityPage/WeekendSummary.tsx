@@ -1,13 +1,13 @@
 import React from "react";
-import { useRecoilValue } from "recoil";
-import { weekendStateAtom } from "@/recoil/atoms";
+import { useAtomValue } from "jotai";
+import { weekendStateAtom } from "@/store/atoms";
 import { getScheduleDuration } from "@/types";
 import { useTheme } from "@/hooks/useTheme";
 import { motion } from "framer-motion";
 import { parseHour } from "@/lib/time";
 
 const WeekendSummary: React.FC = () => {
-  const { saturday, sunday } = useRecoilValue(weekendStateAtom);
+  const { saturday, sunday } = useAtomValue(weekendStateAtom);
   const { isDark } = useTheme();
 
   const all = [...saturday, ...sunday];
