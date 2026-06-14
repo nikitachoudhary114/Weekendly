@@ -2,7 +2,7 @@
 
 A weekend planning app that helps you build a Saturday–Sunday schedule, discover nearby spots, and export a shareable plan — all in the browser.
 
-**Live demo:** [[https://week-endly.vercel.app](https://week-endly.vercel.app/)
+**Live demo:** [[https://week-endly.vercel.app]](https://week-endly.vercel.app/)
 
 ---
 
